@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parkinson's Disease Detection</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: url('https://d31nhj1t453igc.cloudfront.net/cloudinary/2022/Apr/09/Fq750YqUbAGCe6d4TPNi.jpg') no-repeat center center / cover;
+            color: #fff;
+        }
+
+        .container {
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 700px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        p {
+            font-size: 16px;
+            color: #dcdcdc;
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 0 auto 30px auto;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #555;
+            border-radius: 10px;
+            width: 80%; /* Adjusted for better centering */
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            outline: none;
+            transition: 0.3s ease;
+        }
+
+        input[type="file"]:focus {
+            border-color: #00bcd4;
+            box-shadow: 0 6px 15px rgba(0, 188, 212, 0.3);
+        }
+
+        button {
+            background-color: rgba(0, 188, 212, 0.8);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            width: 80%; /* Adjusted width */
+            transition: 0.3s ease-in-out;
+            box-shadow: 0 4px 15px rgba(0, 188, 212, 0.3);
+        }
+
+        button:hover {
+            background-color: rgba(0, 188, 212, 1);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 188, 212, 0.6);
+        }
+
+        #uploadedImage {
+            margin-top: 20px;
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            display: none;
+            object-fit: contain;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+            margin-bottom: 30px;
+        }
+
+        #analyzing {
+            display: none;
+            font-size: 18px;
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        #backButton {
+            margin-top: 20px;
+            display: none;
+            background-color: #C5B358; /* Gold color for the back button */
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s ease-in-out;
+            box-shadow: 0 4px 15px rgba(197, 179, 88, 0.3);
+            width: 80%; /* Adjusted width */
+        }
+
+        #backButton:hover {
+            background-color: #C5B358; /* Same gold color for hover */
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(197, 179, 88, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Parkinson's Disease Detection</h1>
+        <form id="uploadForm">
+            <input type="file" id="file" name="file" accept="image/*" required>
+            <img id="uploadedImage" alt="Uploaded Image Preview">
+            <button type="submit">Analyze Image</button>
+        </form>
+        <div id="analyzing">Analyzing...</div>
+        <div id="result"></div>
+        <button id="backButton">Back</button>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const analyzingDiv = document.getElementById('analyzing');
+        const resultDiv = document.getElementById('result');
+        const backButton = document.getElementById('backButton');
+        const uploadForm = document.getElementById('uploadForm');
+
+        // Preview image before submission
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImage.src = e.target.result;
+                    uploadedImage.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle form submission
+        uploadForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            analyzingDiv.style.display = 'block';
+            resultDiv.innerHTML = '';
+            backButton.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    analyzingDiv.style.display = 'none';
+                    if (data.success) {
+                        resultDiv.innerHTML = `<p><strong>Prediction:</strong> ${data.prediction}</p>`;
+                    } else {
+                        resultDiv.innerHTML = `<p>${data.error}</p>`;
+                    }
+                    backButton.style.display = 'block';
+                })
+                .catch(error => {
+                    analyzingDiv.style.display = 'none';
+                    resultDiv.innerHTML = `<p>An error occurred. Please try again.</p>`;
+                    backButton.style.display = 'block';
+                });
+        });
+
+        // Handle "Back" button
+        backButton.addEventListener('click', () => {
+            uploadedImage.style.display = 'none';
+            resultDiv.innerHTML = '';
+            analyzingDiv.style.display = 'none';
+            backButton.style.display = 'none';
+            uploadForm.reset();
+        });
+    </script>
+</body>
+</html>
